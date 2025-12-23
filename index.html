@@ -112,10 +112,20 @@ const recordsDiv = document.getElementById("records");
 // Start back camera
 function startCamera() {
     navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" }
+        video: {
+            facingMode: "environment",
+            width: { ideal: 4096 },   // request max width
+            height: { ideal: 2160 },  // request max height
+            frameRate: { ideal: 30 }
+        }
     })
-    .then(stream => video.srcObject = stream)
-    .catch(() => alert("Camera permission denied"));
+    .then(stream => {
+        video.srcObject = stream;
+    })
+    .catch(err => {
+        alert("Unable to access camera");
+        console.error(err);
+    });
 }
 
 // Capture machine
@@ -126,22 +136,30 @@ function capturePhoto() {
     }
 
     const canvas = document.createElement("canvas");
+
+    // USE ORIGINAL CAMERA RESOLUTION
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    canvas.getContext("2d").drawImage(video, 0, 0);
+
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // Save as PNG (NO compression)
+    const imageData = canvas.toDataURL("image/png");
 
     const record = {
-        id: Date.now(), // unique ID
-        image: canvas.toDataURL("image/png"),
+        id: Date.now(),
+        image: imageData,
         time: new Date().toLocaleString()
     };
 
-    const data = JSON.parse(localStorage.getItem("sewingRecords")) || [];
+    let data = JSON.parse(localStorage.getItem("sewingRecords")) || [];
     data.push(record);
     localStorage.setItem("sewingRecords", JSON.stringify(data));
 
     displayRecords();
 }
+
 
 // Show records
 function displayRecords() {
@@ -184,3 +202,4 @@ window.onload = displayRecords;
 
 </body>
 </html>
+
