@@ -114,10 +114,20 @@ const recordsDiv = document.getElementById("records");
 // Start back camera
 function startCamera() {
     navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" }
+        video: {
+            facingMode: "environment",
+            width: { ideal: 4096 },   // request max width
+            height: { ideal: 2160 },  // request max height
+            frameRate: { ideal: 30 }
+        }
     })
-    .then(stream => video.srcObject = stream)
-    .catch(() => alert("Camera permission denied"));
+    .then(stream => {
+        video.srcObject = stream;
+    })
+    .catch(err => {
+        alert("Unable to access camera");
+        console.error(err);
+    });
 }
 
 // Capture machine
@@ -194,3 +204,4 @@ window.onload = displayRecords;
 
 </body>
 </html>
+
