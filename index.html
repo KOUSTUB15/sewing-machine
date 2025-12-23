@@ -25,19 +25,19 @@
     h2 {
         text-align: center;
         font-size: 18px;
-        margin: 5px 0;
+        margin: 8px 0;
     }
 
-    video, canvas {
+    video {
         width: 100%;
         border-radius: 8px;
-        background: black;
+        background: #000;
     }
 
-    .buttons {
+    .controls {
         display: flex;
         justify-content: space-between;
-        margin-top: 6px;
+        margin: 8px 0;
     }
 
     button {
@@ -48,26 +48,33 @@
         cursor: pointer;
     }
 
-    .capture { background: #0f9d58; color: #fff; }
-    .reset { background: #d93025; color: #fff; }
+    .capture {
+        background: #28a745;
+        color: #fff;
+    }
 
-    .log {
+    .reset {
+        background: #dc3545;
+        color: #fff;
+    }
+
+    .machine-list {
         margin-top: 10px;
     }
 
-    .item {
+    .machine-card {
         background: #222;
-        padding: 6px;
-        border-radius: 6px;
+        padding: 8px;
+        border-radius: 8px;
         margin-bottom: 8px;
     }
 
-    .item img {
+    .machine-card img {
         width: 100%;
-        border-radius: 5px;
+        border-radius: 6px;
     }
 
-    .meta {
+    .info {
         font-size: 11px;
         margin-top: 4px;
         display: flex;
@@ -78,91 +85,102 @@
     .delete {
         background: #ff4444;
         font-size: 10px;
-        padding: 3px 6px;
-        border-radius: 4px;
+        padding: 4px 6px;
     }
 </style>
 </head>
 
 <body>
 <div class="container">
-    <h2>Sewing Machine Daily Log</h2>
+    <h2>🧵 Sewing Machine Daily Log</h2>
 
-    <video id="video" autoplay playsinline></video>
-    <canvas id="canvas" hidden></canvas>
+    <video id="camera" autoplay playsinline></video>
 
-    <div class="buttons">
+    <div class="controls">
         <button class="capture" onclick="capturePhoto()">Capture</button>
         <button class="reset" onclick="resetAll()">Reset All</button>
     </div>
 
-    <div class="log" id="log"></div>
+    <div class="machine-list" id="machineList"></div>
 </div>
 
-<script>
-const video = document.getElementById("video");
-const canvas = document.getElementById("canvas");
-const log = document.getElementById("log");
+<canvas id="canvas" style="display:none;"></canvas>
 
-/* Open BACK CAMERA with MAX quality */
+<script>
+const video = document.getElementById("camera");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const list = document.getElementById("machineList");
+
+// Start back camera with original quality
 navigator.mediaDevices.getUserMedia({
     video: {
         facingMode: { exact: "environment" },
         width: { ideal: 4096 },
         height: { ideal: 2160 }
     }
-})
-.then(stream => video.srcObject = stream)
-.catch(err => alert("Camera access required"));
+}).then(stream => {
+    video.srcObject = stream;
+}).catch(err => {
+    alert("Camera access denied or not supported");
+});
+
+// Load saved machines
+let machines = JSON.parse(localStorage.getItem("machines")) || [];
+renderMachines();
 
 function capturePhoto() {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    canvas.getContext("2d").drawImage(video, 0, 0);
 
-    const imageData = canvas.toDataURL("image/jpeg", 1.0);
-    const time = new Date().toLocaleString();
+    ctx.drawImage(video, 0, 0);
 
-    const entry = { imageData, time };
-    const data = JSON.parse(localStorage.getItem("machines") || "[]");
-    data.push(entry);
-    localStorage.setItem("machines", JSON.stringify(data));
-    loadData();
+    // Save original-quality image
+    const imageData = canvas.toDataURL("image/png");
+
+    const now = new Date();
+    const entry = {
+        img: imageData,
+        date: now.toLocaleDateString(),
+        time: now.toLocaleTimeString()
+    };
+
+    machines.unshift(entry);
+    localStorage.setItem("machines", JSON.stringify(machines));
+    renderMachines();
 }
 
-function loadData() {
-    log.innerHTML = "";
-    const data = JSON.parse(localStorage.getItem("machines") || "[]");
+function renderMachines() {
+    list.innerHTML = "";
+    machines.forEach((m, index) => {
+        const card = document.createElement("div");
+        card.className = "machine-card";
 
-    data.forEach((item, index) => {
-        const div = document.createElement("div");
-        div.className = "item";
-        div.innerHTML = `
-            <img src="${item.imageData}">
-            <div class="meta">
-                <span>${item.time}</span>
-                <button class="delete" onclick="deleteItem(${index})">Delete</button>
+        card.innerHTML = `
+            <img src="${m.img}">
+            <div class="info">
+                <span>${m.date} | ${m.time}</span>
+                <button class="delete" onclick="deleteMachine(${index})">Delete</button>
             </div>
         `;
-        log.appendChild(div);
+        list.appendChild(card);
     });
 }
 
-function deleteItem(index) {
-    const data = JSON.parse(localStorage.getItem("machines"));
-    data.splice(index, 1);
-    localStorage.setItem("machines", JSON.stringify(data));
-    loadData();
+function deleteMachine(index) {
+    machines.splice(index, 1);
+    localStorage.setItem("machines", JSON.stringify(machines));
+    renderMachines();
 }
 
 function resetAll() {
     if (confirm("Delete all machine records?")) {
+        machines = [];
         localStorage.removeItem("machines");
-        loadData();
+        renderMachines();
     }
 }
-
-loadData();
 </script>
+
 </body>
 </html>
