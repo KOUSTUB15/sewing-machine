@@ -102,15 +102,29 @@
     const recordsDiv = document.getElementById("records");
 
     // Start camera
-    function startCamera() {
+<script>
+function startCamera() {
+    navigator.mediaDevices.getUserMedia({
+        video: {
+            facingMode: { exact: "environment" } // BACK CAMERA
+        }
+    })
+    .then(stream => {
+        video.srcObject = stream;
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Back camera not available. Trying default camera.");
+
+        // Fallback to any available camera
         navigator.mediaDevices.getUserMedia({ video: true })
             .then(stream => {
                 video.srcObject = stream;
-            })
-            .catch(error => {
-                alert("Camera permission denied or not supported");
             });
-    }
+    });
+}
+</script>
+
 
     // Capture photo
     function capturePhoto() {
@@ -170,3 +184,4 @@
 
 </body>
 </html>
+
